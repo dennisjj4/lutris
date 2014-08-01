@@ -230,21 +230,31 @@ class wine(Runner):
             return self.system_config.get('game_path')
 
     @property
-    def browse_dir(self):
-        """Returns the path to open with the Browse Files action."""
-        game_exe = self.settings['game'].get('exe')
-        if game_exe:
-            exe_path = os.path.dirname(game_exe)
-            if os.path.isabs(exe_path):
-                return exe_path
+    def game_exe_dir(self):
+        exe_path = self.settings['game'].get('exe') or None
+        if exe_path:
+            dir_path = os.path.dirname(exe_path)
+            if os.path.isabs(dir_path):
+                return dir_path
             elif self.prefix_path:
                 return os.path.join(self.prefix_path, exe_path)
+
+    @property
+    def browse_dir(self):
+        """Returns the path to open with the Browse Files action."""
+        return self.working_dir  # exe path
+
+    @property
+    def working_dir(self):
+        """Return the working directory to use when running the game."""
+        if self.game_exe_dir:
+            return self.game_exe_dir
         else:
             return self.get_game_path()
 
     @property
     def local_wine_versions(self):
-        """ Return the list of downloaded Wine versions."""
+        """Return the list of downloaded Wine versions."""
         runner_path = WINE_DIR
         versions = []
         # Get list from folder names
@@ -359,13 +369,6 @@ class wine(Runner):
         if os.path.exists(prefix):
             command.append("WINEPREFIX=\"%s\" " % prefix)
             self.wineprefix = prefix
-
-        self.game_path = os.path.dirname(game_exe)
-        if not os.path.exists(self.game_path):
-            if prefix:
-                self.game_path = os.path.join(prefix, self.game_path)
-            if not os.path.exists(self.game_path):
-                return {"error": "FILE_NOT_FOUND", "file": self.game_path}
 
         self.prepare_launch()
         command.append(self.get_executable())
