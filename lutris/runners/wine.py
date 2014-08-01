@@ -365,6 +365,9 @@ class wine(Runner):
         game_exe = self.settings['game'].get('exe')
         arguments = self.settings['game'].get('args') or ''
 
+        if not os.path.exists(game_exe):
+            return {'error': 'FILE_NOT_FOUND', 'file': game_exe}
+
         command = ['WINEARCH=%s' % arch]
         if os.path.exists(prefix):
             command.append("WINEPREFIX=\"%s\" " % prefix)
