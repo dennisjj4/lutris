@@ -106,6 +106,12 @@ class wine(Runner):
             'label': 'Arguments'
         },
         {
+            "option": "working_dir",
+            "type": "directory_chooser",
+            "label": "Working directory"
+        },
+
+        {
             'option': 'prefix',
             'type': 'directory_chooser',
             'label': 'Prefix'
@@ -223,27 +229,32 @@ class wine(Runner):
         return self.settings['game'].get('prefix')
 
     @property
-    def game_exe_dir(self):
-        exe_path = self.settings['game'].get('exe') or None
-        if exe_path:
-            dir_path = os.path.dirname(exe_path)
-            if os.path.isabs(dir_path):
-                return dir_path
+    def game_exe(self):
+        """Return the game's executable's path."""
+        exe = self.settings['game'].get('exe')
+        if exe:
+            if os.path.isabs(exe):
+                return exe
             elif self.prefix_path:
-                return os.path.join(self.prefix_path, exe_path)
+                return os.path.join(self.prefix_path, exe)
+        else:
+            logger.error("Game executable not configured.")
 
     @property
     def browse_dir(self):
-        """Returns the path to open with the Browse Files action."""
+        """Return the path to open with the Browse Files action."""
         return self.working_dir  # exe path
 
     @property
     def working_dir(self):
         """Return the working directory to use when running the game."""
-        if self.game_exe_dir:
-            return self.game_exe_dir
+        option = self.settings['game'].get('working_dir')
+        if option:
+            return option
+        if self.game_exe:
+            return os.path.dirname(self.game_exe)
         else:
-            return self.get_game_path()
+            return super(wine, self).working_dir
 
     @property
     def local_wine_versions(self):
@@ -355,11 +366,10 @@ class wine(Runner):
     def play(self):
         prefix = self.settings['game'].get('prefix') or ''
         arch = self.wine_arch
-        game_exe = self.settings['game'].get('exe')
         arguments = self.settings['game'].get('args') or ''
 
-        if not os.path.exists(game_exe):
-            return {'error': 'FILE_NOT_FOUND', 'file': game_exe}
+        if not os.path.exists(self.game_exe):
+            return {'error': 'FILE_NOT_FOUND', 'file': self.game_exe}
 
         command = ['WINEARCH=%s' % arch]
         if os.path.exists(prefix):
@@ -368,7 +378,7 @@ class wine(Runner):
 
         self.prepare_launch()
         command.append(self.get_executable())
-        command.append("\"%s\"" % game_exe)
+        command.append('"%s"' % self.game_exe)
         if arguments:
             for arg in arguments.split():
                 command.append(arg)
