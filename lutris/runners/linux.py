@@ -19,6 +19,12 @@ class linux(Runner):
             "label": "Arguments"
         },
         {
+            "option": "working_dir",
+            "type": "directory_chooser",
+            "label": "Working directory"
+        },
+
+        {
             "option": "ld_preload",
             "type": "file",
             "label": "Preload library"
@@ -34,26 +40,47 @@ class linux(Runner):
         super(linux, self).__init__()
         self.platform = "Linux games"
         self.ld_preload = None
-        self.game_path = None
         self.settings = settings
+
+    @property
+    def game_exe(self):
+        """Return the game's executable's path."""
+        exe = self.settings['game'].get('exe')
+        if exe:
+            if os.path.isabs(exe):
+                return exe
+            else:
+                return os.path.join(self.get_game_path(), exe)
+        else:
+            logger.error("Game executable not configured.")
+
+    @property
+    def browse_dir(self):
+        """Return the path to open with the Browse Files action."""
+        return self.working_dir  # exe path
+
+    @property
+    def working_dir(self):
+        """Return the working directory to use when running the game."""
+        option = self.settings['game'].get('working_dir')
+        if option:
+            return option
+        if self.game_exe:
+            return os.path.dirname(self.game_exe)
+        else:
+            return super(wine, self).working_dir
 
     def is_installed(self):
         """Well of course Linux is installed, you're using Linux right ?"""
         return True
 
-    def get_game_path(self):
-        return os.path.dirname(self.settings['game']['exe'])
-
     def play(self):
-        """ Run native game. """
+        """Run native game."""
         launch_info = {}
         game_config = self.settings.get('game')
-        executable = game_config.get("exe")
-        if not os.path.exists(executable):
-            return {'error': 'FILE_NOT_FOUND', 'file': executable}
 
-        self.game_path = self.get_game_path()
-        launch_info['game_path'] = self.game_path
+        if not os.path.exists(self.game_exe):
+            return {'error': 'FILE_NOT_FOUND', 'file': self.game_exe}
 
         ld_preload = game_config.get('ld_preload')
         if ld_preload:
@@ -64,7 +91,7 @@ class linux(Runner):
             launch_info['ld_library_path'] = ld_library_path
 
         command = []
-        command.append("./%s" % os.path.basename(executable))
+        command.append('"%s"' % self.game_exe)
 
         args = game_config.get('args', "")
         for arg in args.split():

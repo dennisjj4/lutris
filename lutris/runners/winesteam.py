@@ -54,8 +54,7 @@ class winesteam(wine.wine):
         super(winesteam, self).__init__(settings)
         self.is_watchable = False  # Steam games pids are not parent of Lutris
         self.platform = "Steam (Windows)"
-        config = LutrisConfig(runner=self.__class__.__name__)
-        self.game_path = config.get_path()
+        self.config = LutrisConfig(runner=self.__class__.__name__)
         self.arguments = []
         self.game_options = [
             {'option': 'appid', 'type': 'string', 'label': 'appid'},
@@ -65,35 +64,37 @@ class winesteam(wine.wine):
         ]
         self.settings = settings or {}
 
+    @property
+    def default_path(self):
+        return self.config.get_path()
+
     def install(self, installer_path=None):
         if installer_path:
             self.msi_exec(installer_path, quiet=True)
         Gdk.threads_enter()
         dlg = DirectoryDialog('Where is Steam.exe installed?')
-        self.game_path = dlg.folder
+        path = dlg.folder
         Gdk.threads_leave()
-        config = LutrisConfig(runner='winesteam')
-        config.runner_config = {'system': {'game_path': self.game_path}}
-        config.save()
+        self.config.runner_config = {'system': {'game_path': path}}
+        self.config.save()
 
     def is_installed(self):
         """ Checks if wine is installed and if the steam executable is on the
             harddrive.
         """
-        if not self.check_depends() or not self.game_path:
-            return False
-        return self.game_path and os.path.exists(self.steam_path)
+        return self.check_depends() and os.path.exists(self.steam_path)
 
     def get_game_path(self):
         appid = self.settings['game'].get('appid')
         if self.get_game_data_path(appid):
             return self.get_game_data_path(appid)
-        if self.game_path:
+        if self.default_path:
             return self.get_steamapps_path()
 
     @property
     def steam_path(self):
-        return os.path.join(self.game_path, "Steam.exe")
+        if self.default_path:
+            return os.path.join(self.default_path, "Steam.exe")
 
     @property
     def launch_args(self):
@@ -101,9 +102,9 @@ class winesteam(wine.wine):
                 '"%s"' % self.steam_path, '-no-dwrite']
 
     def get_steam_config(self):
-        if not self.game_path:
+        if not self.default_path:
             return
-        return read_config(self.game_path)
+        return read_config(self.default_path)
 
     def get_appid_list(self):
         """Return the list of appids of all user's games"""
@@ -118,7 +119,7 @@ class winesteam(wine.wine):
             "steamapps/common",
         )
         for candidate in candidates:
-            path = os.path.join(self.game_path, candidate)
+            path = os.path.join(self.default_path, candidate)
             if os.path.exists(path):
                 return path
         raise IOError("Unable to locate SteamApps path")

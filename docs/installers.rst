@@ -57,11 +57,17 @@ Presetting game parameters
 The ``game`` directive lets you preset game parameters and options. Available
 parameters depend on the runner:
 
-* linux: ``args`` (optional main executable command argument)
+* linux: ``args`` (optional command arguments), ``working_dir``
+ (optional working directory, defaults to the exe's dir).
 
-* wine / winesteam: ``args``, ``prefix`` (optional WINEPREFIX).
+* wine:  ``args``, ``prefix`` (optional Wine prefix), ``working_dir`` (optional
+ working directory, defaults to the exe's dir).
 
-[TODO: reference all options]
+* winesteam: ``args``, ``prefix`` (optional Wine prefix).
+
+[TODO: reference all options] Meanwhile, you can check the configuration window
+of any game using the runner you're writing for to get a list of the available
+options.
 
 Example:
 
@@ -209,7 +215,7 @@ Currently, the following tasks are implemented:
 
 * wine / winesteam: ``wineexec`` Runs a windows executable. Parameters are
   ``executable``, ``args`` (optional arguments passed to the executable),
-  ``prefix`` (optional WINEPREFIX), ``workdir`` (optional working directory).
+  ``prefix`` (optional WINEPREFIX), ``working_dir`` (optional working directory).
 
 Example:
 
@@ -236,7 +242,7 @@ Example:
 
 * wine / winesteam: ``set_regedit`` Modifies the Windows registry. Parameters
   are ``path`` (the registry path), ``key``, ``value``, ``prefix`` (optional
-  WINEPREFIX), ``workdir`` (optional working directory).
+  WINEPREFIX), ``working_dir`` (optional working directory).
 
 Example:
 

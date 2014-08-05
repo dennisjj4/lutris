@@ -65,9 +65,6 @@ class scummvm(Runner):
         else:
             return scummvm_path
 
-    def get_game_path(self):
-        return self.settings['game']['path']
-
     def play(self):
         if self.runner_config.get("windowed"):
             fullscreen = "-F"
