@@ -47,42 +47,52 @@ def kill():
 class winesteam(wine.wine):
     """ Runs Steam for Windows games """
 
-    #installer_url = "http://cdn.steampowered.com/download/SteamInstall.msi"
+    # installer_url = "http://cdn.steampowered.com/download/SteamInstall.msi"
     installer_url = "http://lutris.net/files/runners/SteamInstall.msi"
+    platform = "Steam (Windows)"
+    is_watchable = False  # Steam games pids are not parent of Lutris
+    game_options = [
+        {
+            'option': 'appid',
+            'type': 'string',
+            'label': 'appid'
+        },
+        {
+            'option': 'args',
+            'type': 'string',
+            'label': 'arguments'
+        },
+        {
+            'option': 'prefix',
+            'type': 'directory_chooser',
+            'label': 'Prefix'
+        }
+    ]
 
     def __init__(self, settings=None):
         super(winesteam, self).__init__(settings)
-        self.is_watchable = False  # Steam games pids are not parent of Lutris
-        self.platform = "Steam (Windows)"
-        self.config = LutrisConfig(runner=self.__class__.__name__)
+        config = LutrisConfig(runner=self.__class__.__name__)
         self.arguments = []
-        self.game_options = [
-            {'option': 'appid', 'type': 'string', 'label': 'appid'},
-            {'option': 'args', 'type': 'string', 'label': 'arguments'},
-            {'option': 'prefix', 'type': 'directory_chooser',
-             'label': 'Prefix'}
-        ]
         self.settings = settings or {}
-
-    @property
-    def default_path(self):
-        return self.config.get_path()
 
     def install(self, installer_path=None):
         if installer_path:
             self.msi_exec(installer_path, quiet=True)
         Gdk.threads_enter()
         dlg = DirectoryDialog('Where is Steam.exe installed?')
-        path = dlg.folder
+        steam_path = dlg.folder
         Gdk.threads_leave()
-        self.config.runner_config = {'system': {'game_path': path}}
-        self.config.save()
+        config = LutrisConfig(runner='winesteam')
+        config.runner_config = {'system': {'game_path': steam_path}}
+        config.save()
 
     def is_installed(self):
         """ Checks if wine is installed and if the steam executable is on the
             harddrive.
         """
-        return self.check_depends() and os.path.exists(self.steam_path)
+        if not self.check_depends() or not self.default_path:
+            return False
+        return os.path.exists(self.steam_path)
 
     def get_game_path(self):
         appid = self.settings['game'].get('appid')
@@ -93,8 +103,9 @@ class winesteam(wine.wine):
 
     @property
     def steam_path(self):
-        if self.default_path:
-            return os.path.join(self.default_path, "Steam.exe")
+        if not self.default_path:
+            return
+        return os.path.join(self.default_path, "Steam.exe")
 
     @property
     def launch_args(self):
